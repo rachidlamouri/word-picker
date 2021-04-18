@@ -1,14 +1,14 @@
 <template>
   <div
     id="app-container"
-    v-touch:swipe.left="rejectWord"
-    v-touch:swipe.right="acceptWord"
+    v-touch:swipe.left="onSwipeLeft"
+    v-touch:swipe.right="onSwipeRight"
   >
     <h1>Word Picker</h1>
     <div id="word-container">
       <span
         id="word"
-        :class="colorClasses"
+        :class="wordClasses"
       >
         {{ word }}
       </span>
@@ -88,57 +88,78 @@ export default {
   data() {
     return {
       word: '',
-      colorClass: null,
       swipeState: null,
-      colorTimeout: 500,
+      isFetchingWord: false,
+      isInMinimumColorDuration: false,
+      minimumColorDuration: 500,
     };
   },
   computed: {
-    colorClasses() {
-      return this.swipeState === null
-        ? []
-        : [this.swipeState];
+    isSwiping() {
+      return this.swipeState !== null && (this.isInMinimumColorDuration || this.isFetchingWord);
+    },
+    wordClasses() {
+      return this.isSwiping ? [this.swipeState] : [];
     },
   },
-  watch: {
-    swipeState(newState) {
-      if (newState === null) {
-        this.nextWord();
-      }
-    },
-  },
-  mounted() {
-    this.nextWord();
+  async mounted() {
+    const nextWord = await this.fetchNextWord();
+    this.setWord(nextWord);
   },
   methods: {
-    acceptWord() {
-      console.log(this.swipeState)
-      if (this.swipeState !== null) {
-        return;
+    onSwipeRight() {
+      if (!this.isSwiping) {
+        this.acceptWord();
+        this.onSwipe();
       }
-
+    },
+    acceptWord() {
       axios.post('/accepted', { word: this.word });
-      this.setSwipeState('accepting');
+      this.swipeState = 'accepting';
+    },
+    onSwipeLeft() {
+      if (!this.isSwiping) {
+        this.rejectWord();
+        this.onSwipe();
+      }
     },
     rejectWord() {
-      if (this.swipeState !== null) {
-        return;
-      }
-
-      this.setSwipeState('rejecting');
+      this.swipeState = 'rejecting';
     },
-    nextWord() {
-      axios.get('/word')
-        .then((response) => {
-          this.word = response.data;
+    async fetchNextWord() {
+      this.isFetchingWord = true;
+      const response = await axios.get('/word');
+      this.isFetchingWord = false;
+      const word = response.data;
+      return word;
+    },
+    pulseMinimumColorDuration() {
+      this.isInMinimumColorDuration = true;
+      return new Promise((resolve) => {
+        setTimeout(
+          () => {
+            this.isInMinimumColorDuration = false;
+            resolve();
+          },
+          this.minimumColorDuration,
+        );
+      });
+    },
+    onSwipe() {
+      Promise.all([
+        this.fetchNextWord(),
+        this.pulseMinimumColorDuration(),
+      ])
+        .then(([nextWord]) => {
+          this.setWord(nextWord);
+          this.resetSwipeState();
         });
     },
-    setSwipeState(swipeState) {
-      this.swipeState = swipeState;
-      setTimeout(
-        () => { this.swipeState = null; },
-        this.colorTimeout,
-      );
+    setWord(nextWord) {
+      this.word = nextWord;
+    },
+    resetSwipeState() {
+      this.swipeState = null;
     },
   },
 };
