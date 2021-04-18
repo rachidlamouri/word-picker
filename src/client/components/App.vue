@@ -1,12 +1,15 @@
 <template>
   <div
     id="app-container"
-    v-touch:swipe.left="nextWord"
+    v-touch:swipe.left="rejectWord"
     v-touch:swipe.right="acceptWord"
   >
     <h1>Word Picker</h1>
     <div id="word-container">
-      <span id="word">
+      <span
+        id="word"
+        :class="colorClasses"
+      >
         {{ word }}
       </span>
     </div>
@@ -15,7 +18,10 @@
 </template>
 
 <style lang="scss">
+  $background: #fafafa;
   $text: #333;
+  $bad: #f78e69;
+  $good: #1bbee2;
 
   * {
     color: $text;
@@ -23,7 +29,12 @@
     font-family: sans-serif;
   }
 
+  body {
+    margin: 0px;
+  }
+
   #app-container {
+    background-color: $background;
     display: grid;
     justify-items: center;
     width: 100%;
@@ -40,6 +51,16 @@
 
     #word-container {
       grid-area: word;
+
+      #word {
+        &.accepting {
+          color: $good;
+        }
+
+        &.rejecting {
+          color: $bad;
+        }
+      }
     }
 
     #footer {
@@ -67,21 +88,57 @@ export default {
   data() {
     return {
       word: '',
+      colorClass: null,
+      swipeState: null,
+      colorTimeout: 500,
     };
+  },
+  computed: {
+    colorClasses() {
+      return this.swipeState === null
+        ? []
+        : [this.swipeState];
+    },
+  },
+  watch: {
+    swipeState(newState) {
+      if (newState === null) {
+        this.nextWord();
+      }
+    },
   },
   mounted() {
     this.nextWord();
   },
   methods: {
     acceptWord() {
+      console.log(this.swipeState)
+      if (this.swipeState !== null) {
+        return;
+      }
+
       axios.post('/accepted', { word: this.word });
-      this.nextWord();
+      this.setSwipeState('accepting');
+    },
+    rejectWord() {
+      if (this.swipeState !== null) {
+        return;
+      }
+
+      this.setSwipeState('rejecting');
     },
     nextWord() {
       axios.get('/word')
         .then((response) => {
           this.word = response.data;
         });
+    },
+    setSwipeState(swipeState) {
+      this.swipeState = swipeState;
+      setTimeout(
+        () => { this.swipeState = null; },
+        this.colorTimeout,
+      );
     },
   },
 };
