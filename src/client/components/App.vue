@@ -18,6 +18,19 @@
       >
         {{ word }}
       </span>
+      <div
+        v-else-if="hasWords"
+        id="words"
+      >
+        <span>
+          <span class="arrow">←</span>
+          {{ words[0] }}
+        </span>
+        <span>
+          {{ words[1] }}
+          <span class="arrow">→</span>
+        </span>
+      </div>
     </div>
     <div id="footer" />
   </div>
@@ -69,6 +82,29 @@
         color: $error;
       }
 
+      #words {
+        display: flex;
+        flex-direction: column;
+
+        > span:first-child {
+          margin-right: 100px;
+          margin-bottom: 10px;
+
+          .arrow {
+            margin-right: 10px;
+          }
+        }
+
+        > span:last-child {
+          text-align: right;
+          margin-left: 100px;
+
+          .arrow {
+            margin-left: 10px;
+          }
+        }
+      }
+
       span {
         &.accepting {
           color: $good;
@@ -94,6 +130,7 @@ export default {
     return {
       errorMessage: null,
       word: null,
+      words: null,
       swipeState: null,
       isFetchingWord: false,
       isInMinimumColorDuration: false,
@@ -106,6 +143,9 @@ export default {
     },
     hasWord() {
       return this.word !== null;
+    },
+    hasWords() {
+      return this.words !== null;
     },
     isSwiping() {
       return this.swipeState !== null && (this.isInMinimumColorDuration || this.isFetchingWord);
@@ -177,7 +217,13 @@ export default {
         });
     },
     setWord(nextWord) {
-      this.word = nextWord;
+      if (Array.isArray(nextWord)) {
+        this.word = null;
+        this.words = nextWord;
+      } else {
+        this.word = nextWord;
+        this.words = null;
+      }
     },
     resetSwipeState() {
       this.swipeState = null;
