@@ -186,20 +186,16 @@ export default {
   },
   methods: {
     onSwipeRight() {
-      if (this.isSwiping) {
-        return;
-      }
-
       this.onSwipe('right');
     },
     onSwipeLeft() {
+      this.onSwipe('left');
+    },
+    onSwipe(swipeDirection) {
       if (this.isSwiping) {
         return;
       }
 
-      this.onSwipe('left');
-    },
-    onSwipe(swipeDirection) {
       this.swipeDirection = swipeDirection;
       this.isSwiping = true;
 
