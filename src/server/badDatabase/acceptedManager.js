@@ -15,7 +15,11 @@ class AcceptedManager extends FileManager {
   }
 
   getAcceptedCount(userId) {
-    return (this.data[userId] || []).length;
+    return this.getAcceptedWords(userId).length;
+  }
+
+  getAcceptedWords(userId) {
+    return (this.data[userId] || []);
   }
 }
 

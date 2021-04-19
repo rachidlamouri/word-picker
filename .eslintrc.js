@@ -20,6 +20,7 @@ module.exports = {
         ],
       },
     ],
+    'max-classes-per-file': 'off',
     'max-len': [
       'error',
       140,

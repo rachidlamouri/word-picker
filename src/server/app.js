@@ -11,6 +11,7 @@ const serverConfig = require('./config');
 const words = require('./words');
 const acceptedManager = require('./badDatabase/acceptedManager');
 const usersManager = require('./badDatabase/usersManager');
+const bracketManager = require('./badDatabase/bracketManager');
 
 const compiler = webpack(webpackConfig);
 const { publicPath } = webpackConfig.output;
@@ -60,26 +61,59 @@ if (serverConfig.hotReload) {
   app.use(express.static('./build/client/'));
 }
 
-app.get('/word', (req, res, next) => {
-  if (acceptedManager.getAcceptedCount(req.cookies.userId) >= serverConfig.wordLimitPerUser) {
-    next(Error('All words done!'));
-    return;
-  }
+app.get(
+  '/word',
+  (req, res, next) => {
+    if (!serverConfig.isBracketModeEnabled) {
+      next();
+      return;
+    }
 
-  res.send(_.sample(words));
-});
+    if (bracketManager.getPairCount() === 0) {
+      const allAcceptedWords = usersManager.getUserIds().map((userId) => acceptedManager.getAcceptedWords(userId)).flat();
+      bracketManager.initialize(_.shuffle(allAcceptedWords));
+    }
 
-app.post('/accepted', (req, res, next) => {
-  const { userId } = req.cookies;
+    const firstTupleNotVotedOn = bracketManager.findFirstTupleNotVotedOn(req.cookies.userId);
+    if (firstTupleNotVotedOn === null) {
+      next(Error('ohnor!'));
+      return;
+    }
 
-  if (acceptedManager.getAcceptedCount(userId) >= serverConfig.wordLimitPerUser) {
-    next(Error('All words done!'));
-    return;
-  }
+    res.send(firstTupleNotVotedOn);
+  },
+  (req, res, next) => {
+    if (acceptedManager.getAcceptedCount(req.cookies.userId) >= serverConfig.wordLimitPerUser) {
+      next(Error('All words done!'));
+      return;
+    }
 
-  acceptedManager.add(req.cookies.userId, req.body.word);
-  res.sendStatus(200);
-});
+    res.send(_.sample(words));
+  },
+);
+
+app.post(
+  '/accepted',
+  (req, res, next) => {
+    if (serverConfig.isBracketModeEnabled) {
+      next(Error('"Accepted" in bracket mode is not implemented'));
+      return;
+    }
+
+    next();
+  },
+  (req, res, next) => {
+    const { userId } = req.cookies;
+
+    if (acceptedManager.getAcceptedCount(userId) >= serverConfig.wordLimitPerUser) {
+      next(Error('All words done!'));
+      return;
+    }
+
+    acceptedManager.add(req.cookies.userId, req.body.word);
+    res.sendStatus(200);
+  },
+);
 
 app.use((error, req, res, next) => {
   res.status(500).send(error.message);

@@ -14,6 +14,10 @@ class UsersManager extends FileManager {
     return this.data.includes(userId);
   }
 
+  getUserIds() {
+    return this.data;
+  }
+
   getUserCount() {
     return this.data.length;
   }
