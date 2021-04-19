@@ -1,5 +1,5 @@
 module.exports = {
   hotReload: true,
   userLimit: 2,
-  wordLimitPerUser: 5,
+  wordLimitPerUser: 32,
 };
