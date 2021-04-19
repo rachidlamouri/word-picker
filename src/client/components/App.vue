@@ -142,7 +142,6 @@ export default {
       errorMessage: null,
       word: null,
       words: null,
-      isSwiping: false,
       swipeDirection: null,
       isFetchingWord: false,
       minimumColorDuration: 500,
@@ -165,10 +164,13 @@ export default {
       };
     },
     isAccepting() {
-      return this.isSwiping && this.swipeDirection === 'right';
+      return this.swipeDirection === 'right';
     },
     isRejecting() {
-      return this.isSwiping && this.swipeDirection === 'left';
+      return this.swipeDirection === 'left';
+    },
+    isSwiping() {
+      return this.swipeDirection !== null;
     },
   },
   async mounted() {
@@ -197,7 +199,6 @@ export default {
       }
 
       this.swipeDirection = swipeDirection;
-      this.isSwiping = true;
 
       Promise.all([
         fetchNextWordOrWords(),
@@ -207,7 +208,6 @@ export default {
         .then(([nextWordOrWords]) => {
           this.setWordOrWords(nextWordOrWords);
           this.swipeDirection = null;
-          this.isSwiping = false;
         });
     },
     setWordOrWords(nextWordOrWords) {
