@@ -7,7 +7,13 @@
     <h1>Word Picker</h1>
     <div id="word-container">
       <span
-        id="word"
+        v-if="hasError"
+        id="error-message"
+      >
+        {{ errorMessage }}
+      </span>
+      <span
+        v-else-if="hasWord"
         :class="wordClasses"
       >
         {{ word }}
@@ -22,6 +28,7 @@
   $text: #333;
   $bad: #f78e69;
   $good: #1bbee2;
+  $error: #a7c957;
 
   * {
     color: $text;
@@ -51,8 +58,18 @@
 
     #word-container {
       grid-area: word;
+      align-items: center;
+      display: flex;
+      flex: 1;
+      justify-content: center;
+      width: 100%;
+      font-size: 24px;
 
-      #word {
+      #error-message {
+        color: $error;
+      }
+
+      span {
         &.accepting {
           color: $good;
         }
@@ -67,18 +84,6 @@
       grid-area: footer;
     }
   }
-
-  #word-container {
-    align-items: center;
-    display: flex;
-    flex: 1;
-    justify-content: center;
-    width: 100%;
-  }
-
-  #word {
-    font-size: 24px,
-  }
 </style>>
 
 <script>
@@ -87,7 +92,8 @@ import axios from 'axios';
 export default {
   data() {
     return {
-      word: '',
+      errorMessage: null,
+      word: null,
       swipeState: null,
       isFetchingWord: false,
       isInMinimumColorDuration: false,
@@ -95,6 +101,12 @@ export default {
     };
   },
   computed: {
+    hasError() {
+      return this.errorMessage !== null;
+    },
+    hasWord() {
+      return this.word !== null;
+    },
     isSwiping() {
       return this.swipeState !== null && (this.isInMinimumColorDuration || this.isFetchingWord);
     },
@@ -103,6 +115,15 @@ export default {
     },
   },
   async mounted() {
+    axios.interceptors.response.use(
+      undefined,
+      (error) => {
+        this.errorMessage = error.response.data;
+
+        return Promise.reject(error);
+      },
+    );
+
     const nextWord = await this.fetchNextWord();
     this.setWord(nextWord);
   },

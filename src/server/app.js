@@ -60,17 +60,30 @@ if (serverConfig.hotReload) {
   app.use(express.static('./build/client/'));
 }
 
-app.get('/ping', (req, res) => {
-  res.send('Pong!');
-});
+app.get('/word', (req, res, next) => {
+  if (acceptedManager.getAcceptedCount(req.cookies.userId) >= serverConfig.wordLimitPerUser) {
+    next(Error('All words done!'));
+    return;
+  }
 
-app.get('/word', (req, res) => {
   res.send(_.sample(words));
 });
 
-app.post('/accepted', (req, res) => {
-  acceptedManager.add(req.body.word);
+app.post('/accepted', (req, res, next) => {
+  const { userId } = req.cookies;
+
+  if (acceptedManager.getAcceptedCount(userId) >= serverConfig.wordLimitPerUser) {
+    next(Error('All words done!'));
+    return;
+  }
+
+  acceptedManager.add(req.cookies.userId, req.body.word);
   res.sendStatus(200);
+});
+
+app.use((error, req, res, next) => {
+  res.status(500).send(error.message);
+  next();
 });
 
 module.exports = app;

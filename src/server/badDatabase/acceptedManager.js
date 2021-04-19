@@ -2,12 +2,20 @@ const FileManager = require('./fileManager');
 
 class AcceptedManager extends FileManager {
   constructor() {
-    super('accepted', []);
+    super('accepted', {});
   }
 
-  add(word) {
-    this.data.push(word);
+  add(userId, word) {
+    if (!this.data[userId]) {
+      this.data[userId] = [];
+    }
+
+    this.data[userId].push(word);
     this.save();
+  }
+
+  getAcceptedCount(userId) {
+    return (this.data[userId] || []).length;
   }
 }
 
