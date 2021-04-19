@@ -24,10 +24,14 @@
       >
         <span>
           <span class="arrow">←</span>
-          {{ words[0] }}
+          <span :class="leftWordClasses">
+            {{ leftWord }}
+          </span>
         </span>
         <span>
-          {{ words[1] }}
+          <span :class="rightWordClasses">
+            {{ rightWord }}
+          </span>
           <span class="arrow">→</span>
         </span>
       </div>
@@ -159,18 +163,40 @@ export default {
     },
     wordClasses() {
       return {
-        accepting: this.isAccepting,
-        rejecting: this.isRejecting,
+        accepting: this.isAcceptingWord,
+        rejecting: this.isRejectingWord,
       };
     },
-    isAccepting() {
-      return this.swipeDirection === 'right';
+    leftWordClasses() {
+      return {
+        accepting: this.isAcceptingLeftWord,
+      };
     },
-    isRejecting() {
-      return this.swipeDirection === 'left';
+    rightWordClasses() {
+      return {
+        accepting: this.isAcceptingRightWord,
+      };
     },
     isSwiping() {
       return this.swipeDirection !== null;
+    },
+    isRejectingWord() {
+      return this.hasWord && this.swipeDirection === 'left';
+    },
+    isAcceptingWord() {
+      return this.hasWord && this.swipeDirection === 'right';
+    },
+    isAcceptingLeftWord() {
+      return this.hasWords && this.swipeDirection === 'left';
+    },
+    isAcceptingRightWord() {
+      return this.hasWords && this.swipeDirection === 'right';
+    },
+    leftWord() {
+      return this.words[0];
+    },
+    rightWord() {
+      return this.words[1];
     },
   },
   async mounted() {
@@ -202,8 +228,10 @@ export default {
 
       Promise.all([
         fetchNextWordOrWords(),
-        this.isAccepting ? acceptWord(this.word) : Promise.resolve(),
         bluebird.delay(this.minimumColorDuration),
+        this.isAcceptingWord ? acceptWord(this.word) : Promise.resolve(),
+        this.isAcceptingLeftWord ? acceptWord(this.leftWord) : Promise.resolve(),
+        this.isAcceptingRightWord ? acceptWord(this.rightWord) : Promise.resolve(),
       ])
         .then(([nextWordOrWords]) => {
           this.setWordOrWords(nextWordOrWords);
