@@ -124,6 +124,17 @@
 
 <script>
 import axios from 'axios';
+import bluebird from 'bluebird';
+
+const fetchNextWordOrWords = async () => {
+  const response = await axios.get('/word');
+  const wordOrWords = response.data;
+  return wordOrWords;
+};
+
+const acceptWord = async (word) => {
+  await axios.post('/accepted', { word });
+};
 
 export default {
   data() {
@@ -131,9 +142,9 @@ export default {
       errorMessage: null,
       word: null,
       words: null,
-      swipeState: null,
+      isSwiping: false,
+      swipeDirection: null,
       isFetchingWord: false,
-      isInMinimumColorDuration: false,
       minimumColorDuration: 500,
     };
   },
@@ -147,11 +158,17 @@ export default {
     hasWords() {
       return this.words !== null;
     },
-    isSwiping() {
-      return this.swipeState !== null && (this.isInMinimumColorDuration || this.isFetchingWord);
-    },
     wordClasses() {
-      return this.isSwiping ? [this.swipeState] : [];
+      return {
+        accepting: this.isAccepting,
+        rejecting: this.isRejecting,
+      };
+    },
+    isAccepting() {
+      return this.isSwiping && this.swipeDirection === 'right';
+    },
+    isRejecting() {
+      return this.isSwiping && this.swipeDirection === 'left';
     },
   },
   async mounted() {
@@ -164,69 +181,47 @@ export default {
       },
     );
 
-    const nextWord = await this.fetchNextWord();
-    this.setWord(nextWord);
+    const nextWordOrWords = await fetchNextWordOrWords();
+    this.setWordOrWords(nextWordOrWords);
   },
   methods: {
     onSwipeRight() {
-      if (!this.isSwiping) {
-        this.acceptWord();
-        this.onSwipe();
+      if (this.isSwiping) {
+        return;
       }
-    },
-    acceptWord() {
-      axios.post('/accepted', { word: this.word });
-      this.swipeState = 'accepting';
+
+      this.onSwipe('right');
     },
     onSwipeLeft() {
-      if (!this.isSwiping) {
-        this.rejectWord();
-        this.onSwipe();
+      if (this.isSwiping) {
+        return;
       }
+
+      this.onSwipe('left');
     },
-    rejectWord() {
-      this.swipeState = 'rejecting';
-    },
-    async fetchNextWord() {
-      this.isFetchingWord = true;
-      const response = await axios.get('/word');
-      this.isFetchingWord = false;
-      const word = response.data;
-      return word;
-    },
-    pulseMinimumColorDuration() {
-      this.isInMinimumColorDuration = true;
-      return new Promise((resolve) => {
-        setTimeout(
-          () => {
-            this.isInMinimumColorDuration = false;
-            resolve();
-          },
-          this.minimumColorDuration,
-        );
-      });
-    },
-    onSwipe() {
+    onSwipe(swipeDirection) {
+      this.swipeDirection = swipeDirection;
+      this.isSwiping = true;
+
       Promise.all([
-        this.fetchNextWord(),
-        this.pulseMinimumColorDuration(),
+        fetchNextWordOrWords(),
+        this.isAccepting ? acceptWord(this.word) : Promise.resolve(),
+        bluebird.delay(this.minimumColorDuration),
       ])
-        .then(([nextWord]) => {
-          this.setWord(nextWord);
-          this.resetSwipeState();
+        .then(([nextWordOrWords]) => {
+          this.setWordOrWords(nextWordOrWords);
+          this.swipeDirection = null;
+          this.isSwiping = false;
         });
     },
-    setWord(nextWord) {
-      if (Array.isArray(nextWord)) {
+    setWordOrWords(nextWordOrWords) {
+      if (Array.isArray(nextWordOrWords)) {
         this.word = null;
-        this.words = nextWord;
+        this.words = nextWordOrWords;
       } else {
-        this.word = nextWord;
+        this.word = nextWordOrWords;
         this.words = null;
       }
-    },
-    resetSwipeState() {
-      this.swipeState = null;
     },
   },
 };
