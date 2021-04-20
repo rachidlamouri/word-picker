@@ -37,6 +37,11 @@ class WordPair {
 
     this.votes[userId] = word;
   }
+
+  getVotedOnWords(userIds) {
+    const allVotes = userIds.map((userId) => this.votes[userId]);
+    return _.uniq(allVotes);
+  }
 }
 
 class BracketManager extends FileManager {
@@ -78,6 +83,14 @@ class BracketManager extends FileManager {
 
     firstPairNotVotedOn.applyVote(userId, word);
     this.save();
+  }
+
+  hasFinishedVoting(userId) {
+    return this.data.every((wordPair) => wordPair.hasVoted(userId));
+  }
+
+  getAllVotedOnWords(userIds) {
+    return this.data.map((wordPair) => wordPair.getVotedOnWords(userIds)).flat();
   }
 }
 

@@ -69,18 +69,33 @@ app.get(
       return;
     }
 
+    const currentUserId = req.cookies.userId;
+
     if (bracketManager.getPairCount() === 0) {
       const allAcceptedWords = usersManager.getUserIds().map((userId) => acceptedManager.getAcceptedWords(userId)).flat();
       bracketManager.initialize(_.shuffle(allAcceptedWords));
     }
 
-    const firstTupleNotVotedOn = bracketManager.findFirstTupleNotVotedOn(req.cookies.userId);
-    if (firstTupleNotVotedOn === null) {
-      next(Error('ohnor!'));
+    if (!bracketManager.hasFinishedVoting(currentUserId)) {
+      const firstTupleNotVotedOn = bracketManager.findFirstTupleNotVotedOn(currentUserId);
+      res.send(firstTupleNotVotedOn);
       return;
     }
 
-    res.send(firstTupleNotVotedOn);
+    const otherUserId = usersManager.getUserIds().find((userId) => userId !== currentUserId);
+    if (!bracketManager.hasFinishedVoting(otherUserId)) {
+      throw Error(`Time to ✨${_.sample(words)}✨ until your partner is done!`);
+    }
+
+    const allVotedOnWords = bracketManager.getAllVotedOnWords(usersManager.getUserIds());
+
+    if (allVotedOnWords.length === 1) {
+      const [pickedWord] = allVotedOnWords;
+      throw Error(`The picked word is ✨ ${pickedWord.split('').join(' ')} ✨`);
+    }
+
+    bracketManager.initialize(_.shuffle(allVotedOnWords));
+    throw Error(`Tell your partner it's time to ✨${_.sample(words)}✨ and refresh!`);
   },
   (req, res, next) => {
     if (acceptedManager.getAcceptedCount(req.cookies.userId) >= serverConfig.wordLimitPerUser) {

@@ -6,12 +6,12 @@
   >
     <h1>Word Picker</h1>
     <div id="word-container">
-      <span
+      <div
         v-if="hasError"
         id="error-message"
       >
         {{ errorMessage }}
-      </span>
+      </div>
       <span
         v-else-if="hasSingleWord"
         :class="singleWordClasses"
@@ -84,6 +84,8 @@
 
       #error-message {
         color: $error;
+        margin: 10px;
+        text-align: center;
       }
 
       #words {
