@@ -64,7 +64,19 @@ if (serverConfig.hotReload) {
 app.get(
   '/word',
   (req, res, next) => {
-    if (!serverConfig.isBracketModeEnabled) {
+    if (!bracketManager.isEnabled()) {
+      const isDoneAccepting = usersManager.getUserIds()
+        .every((userId) => acceptedManager.getAcceptedCount(userId) >= serverConfig.wordLimitPerUser);
+
+      if (isDoneAccepting) {
+        bracketManager.enable();
+      }
+    }
+
+    next();
+  },
+  (req, res, next) => {
+    if (!bracketManager.isEnabled()) {
       next();
       return;
     }
@@ -99,7 +111,7 @@ app.get(
   },
   (req, res, next) => {
     if (acceptedManager.getAcceptedCount(req.cookies.userId) >= serverConfig.wordLimitPerUser) {
-      next(Error('All words done!'));
+      next(Error('All accepting done!'));
       return;
     }
 
@@ -110,7 +122,7 @@ app.get(
 app.post(
   '/accepted',
   (req, res, next) => {
-    if (!serverConfig.isBracketModeEnabled) {
+    if (!bracketManager.isEnabled()) {
       next();
       return;
     }
@@ -122,7 +134,7 @@ app.post(
     const { userId } = req.cookies;
 
     if (acceptedManager.getAcceptedCount(userId) >= serverConfig.wordLimitPerUser) {
-      next(Error('All words done!'));
+      next(Error('All accepting done!'));
       return;
     }
 

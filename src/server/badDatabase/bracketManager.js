@@ -46,9 +46,17 @@ class WordPair {
 
 class BracketManager extends FileManager {
   constructor() {
-    super('bracket', { wordPairs: [], history: [] });
+    super('bracket', { isEnabled: false, wordPairs: [], history: [] });
 
     this.data.wordPairs = this.data.wordPairs.map((wordPair) => new WordPair(wordPair));
+  }
+
+  enable() {
+    this.data.isEnabled = true;
+  }
+
+  isEnabled() {
+    return this.data.isEnabled;
   }
 
   initialize(words) {
