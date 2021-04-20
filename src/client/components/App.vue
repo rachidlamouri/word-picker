@@ -13,13 +13,13 @@
         {{ errorMessage }}
       </span>
       <span
-        v-else-if="hasWord"
-        :class="wordClasses"
+        v-else-if="hasSingleWord"
+        :class="singleWordClasses"
       >
-        {{ word }}
+        {{ singleWord }}
       </span>
       <div
-        v-else-if="hasWords"
+        v-else-if="hasMultipleWords"
         id="words"
       >
         <span>
@@ -144,27 +144,41 @@ export default {
   data() {
     return {
       errorMessage: null,
-      word: null,
-      words: null,
+      wordOrWords: null,
       swipeDirection: null,
       isFetchingWord: false,
       minimumColorDuration: 500,
     };
   },
   computed: {
+    hasSingleWord() {
+      return typeof this.wordOrWords === 'string';
+    },
+    hasMultipleWords() {
+      return Array.isArray(this.wordOrWords);
+    },
     hasError() {
       return this.errorMessage !== null;
     },
-    hasWord() {
-      return this.word !== null;
+    isSwiping() {
+      return this.swipeDirection !== null;
     },
-    hasWords() {
-      return this.words !== null;
+    isRejectingSingleWord() {
+      return this.hasSingleWord && this.swipeDirection === 'left';
     },
-    wordClasses() {
+    isAcceptingSingleWord() {
+      return this.hasSingleWord && this.swipeDirection === 'right';
+    },
+    isAcceptingLeftWord() {
+      return this.hasMultipleWords && this.swipeDirection === 'left';
+    },
+    isAcceptingRightWord() {
+      return this.hasMultipleWords && this.swipeDirection === 'right';
+    },
+    singleWordClasses() {
       return {
-        accepting: this.isAcceptingWord,
-        rejecting: this.isRejectingWord,
+        accepting: this.isAcceptingSingleWord,
+        rejecting: this.isRejectingSingleWord,
       };
     },
     leftWordClasses() {
@@ -177,26 +191,25 @@ export default {
         accepting: this.isAcceptingRightWord,
       };
     },
-    isSwiping() {
-      return this.swipeDirection !== null;
-    },
-    isRejectingWord() {
-      return this.hasWord && this.swipeDirection === 'left';
-    },
-    isAcceptingWord() {
-      return this.hasWord && this.swipeDirection === 'right';
-    },
-    isAcceptingLeftWord() {
-      return this.hasWords && this.swipeDirection === 'left';
-    },
-    isAcceptingRightWord() {
-      return this.hasWords && this.swipeDirection === 'right';
+    singleWord() {
+      return this.hasSingleWord ? this.wordOrWords : null;
     },
     leftWord() {
-      return this.words[0];
+      return this.hasMultipleWords ? this.wordOrWords[0] : null;
     },
     rightWord() {
-      return this.words[1];
+      return this.hasMultipleWords ? this.wordOrWords[1] : null;
+    },
+    wordToAccept() {
+      switch (true) {
+        case this.isAcceptingSingleWord: return this.singleWord;
+        case this.isAcceptingLeftWord: return this.leftWord;
+        case this.isAcceptingRightWord: return this.rightWord;
+        default: return null;
+      }
+    },
+    isAcceptingAWord() {
+      return this.wordToAccept !== null;
     },
   },
   async mounted() {
@@ -229,9 +242,7 @@ export default {
       Promise.all([
         fetchNextWordOrWords(),
         bluebird.delay(this.minimumColorDuration),
-        this.isAcceptingWord ? acceptWord(this.word) : Promise.resolve(),
-        this.isAcceptingLeftWord ? acceptWord(this.leftWord) : Promise.resolve(),
-        this.isAcceptingRightWord ? acceptWord(this.rightWord) : Promise.resolve(),
+        this.isAcceptingAWord ? acceptWord(this.wordToAccept) : Promise.resolve(),
       ])
         .then(([nextWordOrWords]) => {
           this.setWordOrWords(nextWordOrWords);
@@ -239,13 +250,7 @@ export default {
         });
     },
     setWordOrWords(nextWordOrWords) {
-      if (Array.isArray(nextWordOrWords)) {
-        this.word = null;
-        this.words = nextWordOrWords;
-      } else {
-        this.word = nextWordOrWords;
-        this.words = null;
-      }
+      this.wordOrWords = nextWordOrWords;
     },
   },
 };
