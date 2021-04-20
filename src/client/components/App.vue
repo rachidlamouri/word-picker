@@ -240,9 +240,9 @@ export default {
       this.swipeDirection = swipeDirection;
 
       Promise.all([
-        fetchNextWordOrWords(),
+        (this.isAcceptingAWord ? acceptWord(this.wordToAccept) : Promise.resolve())
+          .then(() => fetchNextWordOrWords()),
         bluebird.delay(this.minimumColorDuration),
-        this.isAcceptingAWord ? acceptWord(this.wordToAccept) : Promise.resolve(),
       ])
         .then(([nextWordOrWords]) => {
           this.setWordOrWords(nextWordOrWords);

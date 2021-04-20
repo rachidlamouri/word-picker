@@ -95,12 +95,13 @@ app.get(
 app.post(
   '/accepted',
   (req, res, next) => {
-    if (serverConfig.isBracketModeEnabled) {
-      next(Error('"Accepted" in bracket mode is not implemented'));
+    if (!serverConfig.isBracketModeEnabled) {
+      next();
       return;
     }
 
-    next();
+    bracketManager.applyVote(req.cookies.userId, req.body.word);
+    res.sendStatus(200);
   },
   (req, res, next) => {
     const { userId } = req.cookies;

@@ -21,6 +21,22 @@ class WordPair {
   hasVoted(userId) {
     return this.votes[userId] !== undefined;
   }
+
+  hasWord(word) {
+    return this.wordA === word || this.wordB === word;
+  }
+
+  applyVote(userId, word) {
+    if (!this.hasWord(word)) {
+      throw Error(`Can't vote "${word}" for pair [${this.wordA}, ${this.wordB}]!`);
+    }
+
+    if (this.hasVoted(userId)) {
+      throw Error(`Already voted on pair [${this.wordA}, ${this.wordB}]!`);
+    }
+
+    this.votes[userId] = word;
+  }
 }
 
 class BracketManager extends FileManager {
@@ -41,12 +57,27 @@ class BracketManager extends FileManager {
     return this.data.length;
   }
 
-  findFirstTupleNotVotedOn(userId) {
-    const firstPairNotVotedOn = this.data.find((wordPair) => !wordPair.hasVoted(userId));
+  findFirstPairNotVotedOn(userId) {
+    return this.data.find((wordPair) => !wordPair.hasVoted(userId)) || null;
+  }
 
-    return firstPairNotVotedOn === undefined
+  findFirstTupleNotVotedOn(userId) {
+    const firstPairNotVotedOn = this.findFirstPairNotVotedOn(userId);
+
+    return firstPairNotVotedOn === null
       ? null
       : firstPairNotVotedOn.getWordTuple();
+  }
+
+  applyVote(userId, word) {
+    const firstPairNotVotedOn = this.findFirstPairNotVotedOn(userId);
+
+    if (firstPairNotVotedOn === null) {
+      throw Error('All votes done!');
+    }
+
+    firstPairNotVotedOn.applyVote(userId, word);
+    this.save();
   }
 }
 
