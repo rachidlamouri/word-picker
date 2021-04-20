@@ -46,24 +46,28 @@ class WordPair {
 
 class BracketManager extends FileManager {
   constructor() {
-    super('bracket', []);
+    super('bracket', { wordPairs: [], history: [] });
 
-    this.data = this.data.map((wordPair) => new WordPair(wordPair));
+    this.data.wordPairs = this.data.wordPairs.map((wordPair) => new WordPair(wordPair));
   }
 
   initialize(words) {
+    if (this.data.wordPairs.length !== 0) {
+      this.data.history.push(this.data.wordPairs);
+    }
+
     const wordPairs = _.chunk(words, 2).map((wordTuple) => WordPair.create(wordTuple));
 
-    this.data = wordPairs;
+    this.data.wordPairs = wordPairs;
     this.save();
   }
 
   getPairCount() {
-    return this.data.length;
+    return this.data.wordPairs.length;
   }
 
   findFirstPairNotVotedOn(userId) {
-    return this.data.find((wordPair) => !wordPair.hasVoted(userId)) || null;
+    return this.data.wordPairs.find((wordPair) => !wordPair.hasVoted(userId)) || null;
   }
 
   findFirstTupleNotVotedOn(userId) {
@@ -86,11 +90,11 @@ class BracketManager extends FileManager {
   }
 
   hasFinishedVoting(userId) {
-    return this.data.every((wordPair) => wordPair.hasVoted(userId));
+    return this.data.wordPairs.every((wordPair) => wordPair.hasVoted(userId));
   }
 
   getAllVotedOnWords(userIds) {
-    return this.data.map((wordPair) => wordPair.getVotedOnWords(userIds)).flat();
+    return this.data.wordPairs.map((wordPair) => wordPair.getVotedOnWords(userIds)).flat();
   }
 }
 
